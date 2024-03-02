@@ -92,6 +92,28 @@ class DatabaseAccess {
       }
    }
 
+   async getURLForSlug(slug: string): Promise<string|undefined> {
+      const client = this.getConnectedClient();
+      try {
+         const sql = `SELECT URL FROM ${SCHEMA_NAME}.${TABLE_NAME} WHERE SLUG = $1`; // no sql injection
+         const res = await client.query(sql, [slug]);
+         logger.info(`res from select url ${JSON.stringify(res)}`);
+         if(res.rows && res.rows.length >0 ) {
+            if(res.rows.length > 1)
+               logger.warn(`WARNING FOUND MORE THAN 1 URL FOR SLUG ${slug}. It should not be possible. Check your math!`)
+            const url = res.rows[0].url;
+            return url;
+         }
+         return undefined;
+      } catch(err) {
+         logger.error(`Error getting URL for slug ${slug}: ${err.message}}`)
+         throw err;
+      } finally {
+         client.end();
+      }
+   }
+
+
    async createNewMapping(data: {url:string,slug:string,user:string}): Promise<number> {
       const client = this.getConnectedClient();
       try {

@@ -24,6 +24,15 @@ class UrlRepository {
       }
    }
 
+   async getURLForSlug(slug: string): Promise<string|undefined> {
+      try {
+         return await dbAccess.getURLForSlug(slug);
+      } catch(err) {
+         logger.error(`Cannto retrieve URL for slug ${slug}: ${err.message}`);
+         throw err;
+      }
+   }
+
    async createNewMappingAndReturnID(url: string):Promise<number> {
       try {
          return await dbAccess.createNewMapping({url,slug:'',user:''}); // will get updated
@@ -53,7 +62,7 @@ class UrlRepository {
          const newMappingId = await this.createNewMappingAndReturnID(passedURL);
 
          const urlShortener = new UrlShortener();
-         const slug = urlShortener.numberToUniqueString(newMappingId, '');
+         const slug = urlShortener.numberToUniqueString(newMappingId);
 
          await this.updateMapping(newMappingId, slug, '');
 

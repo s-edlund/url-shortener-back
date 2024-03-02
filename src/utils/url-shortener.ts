@@ -3,17 +3,23 @@ import { URLValidator } from "./url-validator";
 
 export class UrlShortener {
 
-   urlValidator = new URLValidator();
-
-   map: {[key: string]: string} = {};
-   reverseMap: {[key: number]: string} = {};
-
-   inc = 0;
-
    // Allowed letters for slugs. The longer the list, the shorter the URLs.
+   // The lengh of the alphabet is the base number of the  slug.
+   // The number of unique slugs is basically astronomical, but 
+   // would theoretically be limited by the max length of a string in the 
+   // database, or computer memory.
+
    alpha = "abcdefghijklmnopqrstuvwxyz0123456789";
 
-   numberToUniqueString(n: number, currentResult:string): string {
+   /**
+    * This is basically it. If we have a number that's unique (it is, it's a primary key in a database table),
+    * we can generate a string from it in the base number of the alphabet
+    * 
+    * @param n A number
+    * @param currentResult For recursion, should start out empty 
+    * @returns 
+    */
+   numberToUniqueString(n: number, currentResult:string = ''): string {
       const base = this.alpha.length;
 
       if(n < base)   {
@@ -28,6 +34,7 @@ export class UrlShortener {
       return this.numberToUniqueString(nextNum, currentResult);
    }
 
+   // Not really used
    stringToNumber(s: string): BigInt {
       let pos = 0;
       let result = 0n;
@@ -41,26 +48,6 @@ export class UrlShortener {
       }
       return result;
    }
-
-   lengthen(url:string): string|undefined {
-       return this.reverseMap[url]
-   }
-
-   /*
-   getUniqueSlugForNumber(num: number):string {
-      console.log(`shortening ${str}`);
-      if(!this.urlValidator.isValidUrl(str)) {
-         const err = Error(`Invalid URL ${str}`);
-         (err as any).status = 400;
-         throw err;
-      }
-      if(this.map[str] !== undefined) 
-         return this.map[str];
-       this.map[str] = this.numberToString(this.inc, "");
-       this.reverseMap[this.map[str]] = str;
-       ++this.inc; // auto inc number in a DB really
-       return this.map[str];
-   }   */
 }
 
 
