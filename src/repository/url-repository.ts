@@ -1,6 +1,7 @@
 import dbAccess from '../database/db-access';
 import { getLogger } from '../utils/logger';
 import { UrlShortener } from '../utils/url-shortener';
+import {uuid} from 'uuidv4';
 
 const logger = getLogger('url-repo');
 
@@ -15,7 +16,7 @@ class UrlRepository {
       }
    }
 
-   async getSlugForURL(url: string): Promise<string|undefined> {
+   async getSlugForURL(url: string): Promise<{slug:string, url:string, id:number, user:string}|undefined>  {
       try {
          return await dbAccess.getSlugForURL(url);
       } catch(err) {
@@ -35,7 +36,10 @@ class UrlRepository {
 
    async createNewMappingAndReturnID(url: string):Promise<number> {
       try {
-         return await dbAccess.createNewMapping({url,slug:'',user:''}); // will get updated
+         // Create something tha'ts guaranteed unique for temporary value. A better way would be
+         // to use tx and tx isolation here
+         const temporarySlugVal = uuid();
+         return await dbAccess.createNewMapping({url,slug:temporarySlugVal,user:''}); // will get updated
       } catch(err) {
          logger.error(`Cannot creqte new mapping: ${err.message}`);
          throw err;
@@ -51,22 +55,23 @@ class UrlRepository {
       }
    }
 
-   async createOrReturnExistingSlugForUrl(passedURL): Promise<string> {
+   async createOrReturnExistingSlugForUrl(passedURL): Promise<{slug:string, url:string, id:number, user:string}> {
       try {
-         const existingSlug = await this.getSlugForURL(passedURL);
-         logger.info(`existing slug: ${existingSlug}`);
-         if(existingSlug) {
-            return existingSlug;
+         const result = await this.getSlugForURL(passedURL);
+         if(result) {
+            const {slug, url, id, user} = result;
+            logger.info(`existing slug: ${slug}`);
+            return {slug, url, id, user};
          }
          
          const newMappingId = await this.createNewMappingAndReturnID(passedURL);
 
          const urlShortener = new UrlShortener();
-         const slug = urlShortener.numberToUniqueString(newMappingId);
+         const newSlug = urlShortener.numberToUniqueString(newMappingId);
 
-         await this.updateMapping(newMappingId, slug, '');
+         await this.updateMapping(newMappingId, newSlug, '');
 
-         return slug;
+         return {slug: newSlug, url: passedURL, id: newMappingId, user:''};
       } catch(err) {
          logger.error(`Cannot create or return mapping for ${passedURL}: ${err.message}`);
          throw err;

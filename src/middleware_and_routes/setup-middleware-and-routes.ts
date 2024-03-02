@@ -4,12 +4,24 @@ import cors from 'cors';
 import urlRepo from '../repository/url-repository';
 import { getLogger } from '../utils/logger';
 import { UrlShortener } from '../utils/url-shortener';
+import { rateLimit } from 'express-rate-limit'
 
 const logger = getLogger('setup-middleware-and-routes');
 
 const urlShortener = new UrlShortener();
 
 export const setupMiddlewareAndRoutes = (app: Express) => {
+
+
+   // Rate limiting (extra credit). TODO: tests in stress tests
+   const limiter = rateLimit({
+      windowMs: 5 * 60 * 1000, // 5 minutes
+      limit: 100, // 100 request in 5 mins
+      standardHeaders: 'draft-7',
+      legacyHeaders: false
+   });
+
+   app.use(limiter)
 
    // Should not be left open like this, TODO.
    app.use(cors());
@@ -23,14 +35,41 @@ export const setupMiddlewareAndRoutes = (app: Express) => {
          const passedURL = req.query.url as string;
          // should sanitise here
 
-         const slug = await urlRepo.createOrReturnExistingSlugForUrl(passedURL);
+         const {slug, url, id, user} = await urlRepo.createOrReturnExistingSlugForUrl(passedURL);
 
-         res.json({"shortenedUrl": slug});
+
+         // Very basic JSONAPI used here:
+
+         res.contentType('application/vnd.api+json');
+
+         const jsonApiResponse = {
+            "data": [{
+               "type":"urlmapping",
+               "id":id,
+               "attributes" : {
+                  "slug": slug,
+                  "url":url,
+                  "id":id,
+                  "user":user
+               }
+            }]
+         }
+         res.json(jsonApiResponse);
          
       } catch(err) {
          const stat = err.status? err.status: 500;
+
+         const jsonApiError = {
+            "errors": [{
+               "status":stat,
+               "title": `Error shortening URL`,
+               "detail": err.message
+            }
+            ]
+            }
          res.status(stat);
-         res.json({err: err.message, status:stat});
+         res.contentType('application/vnd.api+json');
+         res.json(jsonApiError);
       }
    })
 
@@ -44,7 +83,7 @@ export const setupMiddlewareAndRoutes = (app: Express) => {
          
          // const storedUrl = urlShortener.lengthen(slug);
          const storedUrl = await urlRepo.getURLForSlug(slug);
-         
+
          if(storedUrl) {
             // redirect
             logger.info(`redirect ${storedUrl}`); 

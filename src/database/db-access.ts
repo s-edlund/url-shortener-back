@@ -73,15 +73,18 @@ class DatabaseAccess {
       }
    }
 
-   async getSlugForURL(url: string): Promise<string|undefined> {
+   async getSlugForURL(url: string): Promise<{slug:string, url:string, id:number, user:string}|undefined> {
       const client = this.getConnectedClient();
       try {
-         const sql = `SELECT SLUG FROM ${SCHEMA_NAME}.${TABLE_NAME} WHERE URL = $1`; // no sql injection
+         const sql = `SELECT SLUG, URL, ID, USERNAME FROM ${SCHEMA_NAME}.${TABLE_NAME} WHERE URL = $1`; // no sql injection
          const res = await client.query(sql, [url]);
-         logger.info(`res from select slug ${JSON.stringify(res)}`);
+         logger.debug(`res from select slug ${JSON.stringify(res)}`);
          if(res.rows && res.rows.length >0 ) {
             const slug = res.rows[0].slug;
-            return slug;
+            const url = res.rows[0].url;
+            const id = res.rows[0].id;
+            const user = res.rows[0].username;
+            return {slug, url, id, user};
          }
          return undefined;
       } catch(err) {

@@ -17,7 +17,9 @@
     "cors": "2.8.5",
     "config":"3.3.11",
     "pg":"8.11.3",
-    "winston": "3.11.0" 
+    "winston": "3.11.0",
+    "express-rate-limit":"7.1.5",
+    "uuidv4":"6.2.13"
   },
   "devDependencies": {
     "typescript": "5.3.3",
