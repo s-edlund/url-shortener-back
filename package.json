@@ -1,0 +1,25 @@
+{
+  "name": "url-shortener-back",
+  "version": "1.0.0",
+  "description": "url shortener backend",
+  "main": "server.js",
+  "scripts": {
+    "build": "./node_modules/.bin/tsc",
+    "build-watch": "./node_modules/.bin/tsc -w",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "./node_modules/.bin/nodemon ./lib/server.js",
+    "start-prod": "NODE_ENV=production node ./lib/server.js"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "4.18.3",
+    "cors": "2.8.5",
+    "config":"3.3.11"
+  },
+  "devDependencies": {
+    "typescript": "5.3.3",
+    "@types/express": "4.17.21",
+    "nodemon":"3.1.0"
+  }
+}

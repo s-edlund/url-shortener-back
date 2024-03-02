@@ -1,0 +1,7 @@
+{
+   "port": 3001,
+   "database": {
+      "dbHost": "localhost",
+      "dbPort": "1234"
+   }
+}
