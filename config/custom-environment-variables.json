@@ -1,6 +1,7 @@
 {
    "port": "PORT",
    "database": {
+      "dbName": "DB_NAME",
       "dbHost": "DB_HOST",
       "dbPort": "DB_PORT",
       "dbUser": "DB_USER",

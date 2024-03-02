@@ -10,10 +10,10 @@ export class UrlShortener {
 
    inc = 0;
 
-   // Allowed letters for 
-   alpha = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+   // Allowed letters for slugs. The longer the list, the shorter the URLs.
+   alpha = "abcdefghijklmnopqrstuvwxyz0123456789";
 
-   numberToString(n: number, currentResult:string): string {
+   numberToUniqueString(n: number, currentResult:string): string {
       const base = this.alpha.length;
 
       if(n < base)   {
@@ -25,7 +25,7 @@ export class UrlShortener {
       const c = this.alpha[pos];
       currentResult += c;
       const nextNum = Math.floor(n/base);
-      return this.numberToString(nextNum, currentResult);
+      return this.numberToUniqueString(nextNum, currentResult);
    }
 
    stringToNumber(s: string): BigInt {
@@ -46,7 +46,8 @@ export class UrlShortener {
        return this.reverseMap[url]
    }
 
-   shorten(str: string):string {
+   /*
+   getUniqueSlugForNumber(num: number):string {
       console.log(`shortening ${str}`);
       if(!this.urlValidator.isValidUrl(str)) {
          const err = Error(`Invalid URL ${str}`);
@@ -59,7 +60,7 @@ export class UrlShortener {
        this.reverseMap[this.map[str]] = str;
        ++this.inc; // auto inc number in a DB really
        return this.map[str];
-   }   
+   }   */
 }
 
 

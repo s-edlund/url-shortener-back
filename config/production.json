@@ -1,7 +1,9 @@
 {
    "port": 3001,
    "database": {
-      "dbHost": "localhost",
-      "dbPort": "1234"
+      "dbName": "postgres",
+      "dbUser": "postgres",
+      "dbHost": "url-shortener-back-db",
+      "dbPort": "5432"
    }
 }
