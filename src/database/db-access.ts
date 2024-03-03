@@ -59,6 +59,7 @@ class DatabaseAccess {
                URL TEXT NOT NULL,
                SLUG VARCHAR(256) NOT NULL,
                USERNAME VARCHAR(256),
+               VISITS BIGINT DEFAULT 0,
                UNIQUE(SLUG)  
          )`
 
@@ -95,17 +96,21 @@ class DatabaseAccess {
       }
    }
 
-   async getURLForSlug(slug: string): Promise<string|undefined> {
+   async getURLForSlug(slug: string): Promise<{slug:string, url:string, id:number, user:string}|undefined> {
       const client = this.getConnectedClient();
       try {
-         const sql = `SELECT URL FROM ${SCHEMA_NAME}.${TABLE_NAME} WHERE SLUG = $1`; // no sql injection
+         const sql = `SELECT SLUG, URL, ID, USERNAME FROM ${SCHEMA_NAME}.${TABLE_NAME} WHERE SLUG = $1`; // no sql injection
          const res = await client.query(sql, [slug]);
          logger.info(`res from select url ${JSON.stringify(res)}`);
          if(res.rows && res.rows.length >0 ) {
             if(res.rows.length > 1)
                logger.warn(`WARNING FOUND MORE THAN 1 URL FOR SLUG ${slug}. It should not be possible. Check your math!`)
-            const url = res.rows[0].url;
-            return url;
+            return {
+               slug: res.rows[0].slug,
+               url: res.rows[0].url,
+               id: res.rows[0].id,
+               user: res.rows[0].username
+            }
          }
          return undefined;
       } catch(err) {
@@ -116,18 +121,19 @@ class DatabaseAccess {
       }
    }
 
-   async getURLsForUser(user: string): Promise<Array<{slug:string, url:string, id:number, user:string}>> {
+   async getURLsForUser(user: string): Promise<Array<{slug:string, url:string, id:number, user:string, visits: number}>> {
       const client = this.getConnectedClient();
       try {
-         const sql = `SELECT SLUG, URL, ID, USERNAME FROM ${SCHEMA_NAME}.${TABLE_NAME} WHERE USERNAME = $1 ORDER BY ID DESC`; // no sql injection
+         const sql = `SELECT SLUG, URL, ID, USERNAME, VISITS FROM ${SCHEMA_NAME}.${TABLE_NAME} WHERE USERNAME = $1 ORDER BY ID DESC`; // no sql injection
          const res = await client.query(sql, [user]);
          logger.debug(`res from select for user ${JSON.stringify(res)}`);
-         const userURLs:Array<{slug:string, url:string, id:number, user:string}> = [];
+         const userURLs:Array<{slug:string, url:string, id:number, user:string, visits: number}> = [];
          res.rows?.forEach((row) => userURLs.push({
             slug:row.slug,
             url: row.url,
             id: row.id,
-            user: row.username
+            user: row.username,
+            visits: row.visits
          }));
          logger.debug(`results ${JSON.stringify(userURLs)}`);
          return userURLs;
@@ -193,7 +199,23 @@ class DatabaseAccess {
          client.end();
       }
    }
+
+   async updateVisitsForURLId(id: number) {
+      const client = this.getConnectedClient();
+      try {
+         const sql = `UPDATE ${SCHEMA_NAME}.${TABLE_NAME} SET VISITS=VISITS+1 WHERE ID=$1`;
+         const res = await client.query(sql, [id]);
+         logger.debug(`visits update res ${JSON.stringify(res)}`);
+      } catch(err) {
+         logger.error(`Error updating visits: ${err.message}}`)
+         throw err;
+      } finally {
+         client.end();
+      }
+   }
 }
+
+
 
 
 export default new DatabaseAccess();

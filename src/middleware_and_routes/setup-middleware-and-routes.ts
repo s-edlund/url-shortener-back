@@ -32,18 +32,17 @@ export const setupMiddlewareAndRoutes = (app: Express) => {
 
    app.use((req, res, next) => {
       // sanitation needed herer:
-      const user = req.query['user'] as string;
+      let user = req.query['user'] as string;
       if(!user) {
-         const e = new Error(`All backend APIs needs a user context. None was found`);
-         (e as any).status = 400;
-         throw e;
+         logger.warn('no user found, using dummy user');
+         user = 'panda';
       }
       globals.username = user;
       next();
    });
 
    app.get('/', (req, res) => {
-   res.send('Server is up')
+      res.send('Server is up')
    })
 
    // use _ to ensure it's never part of our alphabet
@@ -105,7 +104,8 @@ export const setupMiddlewareAndRoutes = (app: Express) => {
                   "slug": u.slug,
                   "url":u.url,
                   "id":u.id,
-                  "user":u.user
+                  "user":u.user,
+                  "visits":u.visits
                }
             });
          })
@@ -193,12 +193,15 @@ export const setupMiddlewareAndRoutes = (app: Express) => {
          logger.info(`slug ${slug}`);
          
          // const storedUrl = urlShortener.lengthen(slug);
-         const storedUrl = await urlRepo.getURLForSlug(slug);
+         const result = await urlRepo.getURLForSlug(slug);
 
-         if(storedUrl) {
+         if(result) {
+            const url  = result.url;
+            const id = result.id;
+            await urlRepo.updateVisitsForURLId(id);
             // redirect
-            logger.info(`redirect ${storedUrl}`); 
-            res.redirect(storedUrl);
+            logger.info(`redirect ${url}`); 
+            res.redirect(url);
          } else {
             res.status(404);
             res.send(`<h2 style="color: red">Unable to locate url slug: ${slug}</h2>`);

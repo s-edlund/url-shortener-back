@@ -26,7 +26,7 @@ class UrlRepository {
       }
    }
 
-   async getURLForSlug(slug: string): Promise<string|undefined> {
+   async getURLForSlug(slug: string): Promise<{slug:string, url:string, id:number, user:string}|undefined> {
       try {
          return await dbAccess.getURLForSlug(slug);
       } catch(err) {
@@ -35,7 +35,7 @@ class UrlRepository {
       }
    }
 
-   async getURLsForUser(user: string): Promise<Array<{slug:string, url:string, id:number, user:string}>> {
+   async getURLsForUser(user: string): Promise<Array<{slug:string, url:string, id:number, user:string, visits: number}>> {
       try {
          return await dbAccess.getURLsForUser(user);
       } catch(err) {
@@ -101,6 +101,15 @@ class UrlRepository {
          return await this.updateMapping(id, newName, globals.username); 
       } catch(err) {
          logger.error(`Cannot update mapping  ${err.message}`);
+         throw err;
+      }
+   }
+
+   async updateVisitsForURLId(id: number) {
+      try {
+         return await dbAccess.updateVisitsForURLId(id); 
+      } catch(err) {
+         logger.error(`Cannot update visits for ID ${id}:  ${err.message}`);
          throw err;
       }
    }
