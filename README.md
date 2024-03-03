@@ -13,9 +13,9 @@ Instructions to build and run
 * `npm install`
 * `npm run build`
 * `./build-docker.sh $DB_PASSWORD`
-* `./run-docker`
+* `./run-docker.sh`
 * Check that the container comes up with no errors (`docker logs url-shortener-back`)
-* Check that the server is up (load http://localhost:3001/ in a browser)
+* Check that the server is up (load http://localhost:3001/in a browser)
 
 You can also run a dev version of the server outside of docker using `npm start`
 
