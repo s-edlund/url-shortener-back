@@ -116,6 +116,50 @@ class DatabaseAccess {
       }
    }
 
+   async getURLsForUser(user: string): Promise<Array<{slug:string, url:string, id:number, user:string}>> {
+      const client = this.getConnectedClient();
+      try {
+         const sql = `SELECT SLUG, URL, ID, USERNAME FROM ${SCHEMA_NAME}.${TABLE_NAME} WHERE USERNAME = $1 ORDER BY ID DESC`; // no sql injection
+         const res = await client.query(sql, [user]);
+         logger.debug(`res from select for user ${JSON.stringify(res)}`);
+         const userURLs:Array<{slug:string, url:string, id:number, user:string}> = [];
+         res.rows?.forEach((row) => userURLs.push({
+            slug:row.slug,
+            url: row.url,
+            id: row.id,
+            user: row.username
+         }));
+         logger.debug(`results ${JSON.stringify(userURLs)}`);
+         return userURLs;
+      } catch(err) {
+         logger.error(`Error getting URLs for user ${user}: ${err.message}}`)
+         throw err;
+      } finally {
+         client.end();
+      }
+   }
+
+   async getURLByID(id: number) {
+      const client = this.getConnectedClient();
+      try {
+         const sql = `SELECT SLUG, URL, ID, USERNAME FROM ${SCHEMA_NAME}.${TABLE_NAME} WHERE ID = $1`; // no sql injection
+         const res = await client.query(sql, [id]);
+         logger.debug(`res from select slug  for ID ${JSON.stringify(res)}`);
+         if(res.rows && res.rows.length >0 ) {
+            const slug = res.rows[0].slug;
+            const url = res.rows[0].url;
+            const id = res.rows[0].id;
+            const user = res.rows[0].username;
+            return {slug, url, id, user};
+         }
+         return undefined;
+      } catch(err) {
+         logger.error(`Error getting slug for by ID ${id}: ${err.message}}`)
+         throw err;
+      } finally {
+         client.end();
+      }
+   }
 
    async createNewMapping(data: {url:string,slug:string,user:string}): Promise<number> {
       const client = this.getConnectedClient();

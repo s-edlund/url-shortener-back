@@ -5,13 +5,12 @@ import urlRepo from '../repository/url-repository';
 import { getLogger } from '../utils/logger';
 import { UrlShortener } from '../utils/url-shortener';
 import { rateLimit } from 'express-rate-limit'
+import globals from '../globals/globals';
+import {json} from 'body-parser';
 
 const logger = getLogger('setup-middleware-and-routes');
 
-const urlShortener = new UrlShortener();
-
 export const setupMiddlewareAndRoutes = (app: Express) => {
-
 
    // Rate limiting (extra credit). TODO: tests in stress tests
    const limiter = rateLimit({
@@ -26,11 +25,29 @@ export const setupMiddlewareAndRoutes = (app: Express) => {
    // Should not be left open like this, TODO.
    app.use(cors());
 
+   // Parse JSON bodies
+   app.use(json())
+
+   // Make sure user is passed in all requests
+
+   app.use((req, res, next) => {
+      // sanitation needed herer:
+      const user = req.query['user'] as string;
+      if(!user) {
+         const e = new Error(`All backend APIs needs a user context. None was found`);
+         (e as any).status = 400;
+         throw e;
+      }
+      globals.username = user;
+      next();
+   });
+
    app.get('/', (req, res) => {
    res.send('Server is up')
    })
 
-   app.get('/shorten', async (req, res) => {
+   // use _ to ensure it's never part of our alphabet
+   app.get('/_shorten', async (req, res) => {
       try {
          const passedURL = req.query.url as string;
          // should sanitise here
@@ -73,6 +90,100 @@ export const setupMiddlewareAndRoutes = (app: Express) => {
       }
    })
 
+   app.get('/_geturls', async (req, res) => {
+      try {
+         
+         globals.username;
+         const urls = await urlRepo.getURLsForUser(globals.username);
+
+         const data = []
+         urls.forEach(u => {
+            data.push({
+               "type":"urlmapping",
+               "id":u.id,
+               "attributes" : {
+                  "slug": u.slug,
+                  "url":u.url,
+                  "id":u.id,
+                  "user":u.user
+               }
+            });
+         })
+         res.contentType('application/vnd.api+json');
+         const jsonApiResponse = {data};
+
+         logger.debug(`api response ${JSON.stringify(jsonApiResponse)}`)
+         res.json(jsonApiResponse);
+         
+      } catch(err) {
+         const stat = err.status? err.status: 500;
+
+         const jsonApiError = {
+            "errors": [{
+               "status":stat,
+               "title": `Error shortening URL`,
+               "detail": err.message
+            }
+            ]
+            }
+         res.status(stat);
+         res.contentType('application/vnd.api+json');
+         res.json(jsonApiError);
+      }
+   })
+
+   app.put('/_updateslug', async (req, res) => {
+      try {
+         globals.username;
+         const data = req.body;
+
+         logger.debug(`body: ${JSON.stringify(data)}`);
+         // simple validation
+         if(!data || !data.data || data.data.length ===0 || !data.data[0].id || !data.data[0].attributes?.slug) {
+            const err = new Error(`Invalid input in request`);
+            (err as any).status = 400;
+            throw err;
+         }
+         const urlId = data.data[0]?.id
+         const newSlugName = data.data[0]?.attributes.slug;
+
+         await urlRepo.updateNameForSlug(urlId, newSlugName);
+         const updatedUrl = await urlRepo.getURLByID(urlId);
+         // Respond with update value from database
+
+         const jsonApiResponse = {
+            "data": [{
+               "type":"urlmapping",
+               "id":updatedUrl.id,
+               "attributes" : {
+                  "slug": updatedUrl.slug,
+                  "url":updatedUrl.url,
+                  "id":updatedUrl.id,
+                  "user":updatedUrl.user
+               }
+            }]
+         }
+
+         res.contentType('application/vnd.api+json');
+         res.json(jsonApiResponse);
+         
+      } catch(err) {
+         const stat = err.status? err.status: 500;
+
+         const jsonApiError = {
+            "errors": [{
+               "status":stat,
+               "title": `Error shortening URL`,
+               "detail": err.message
+            }
+            ]
+         }
+         res.status(stat);
+         res.contentType('application/vnd.api+json');
+         res.json(jsonApiError);
+      }
+   })
+
    // Handle everything else with a redirect or 404
    app.get('/*', async (req, res) => {
       try {
@@ -99,5 +210,10 @@ export const setupMiddlewareAndRoutes = (app: Express) => {
       }
    });
 
+   app._router.stack.forEach(function(r){
+      if (r.route && r.route.path){
+        console.log(`path: ${r.route.path}`)
+      }
+    })
 
 }
